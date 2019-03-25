@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include "code.h"
 
 
 //------------------------------------------------------------------------
@@ -14,27 +15,11 @@ sont numerote dans lordre classique de lecture du graphe grille
 Le but et de generaliser ce code pour traiter tout type de graphe avec une 
 application sur les graphes grille*/
 
-typedef enum { Sain, Malade, Immunise, Mort} State;
-
 /*etat de chaque noeud de depart a specifier dans le fichier et definit
 a la creation du graphe -> malus: txt volumineux
 OU 
 on donne le nb de chaque personne dans chaque etat et le txt nous donne
 seulement le numero des personnes non saines : methode adoptee*/
-
-typedef struct _cell { int indexInList ; struct _cell* next; } Cell;
-
-typedef struct { int nb_summit; Cell** successors; State* population_states; } Graphe;
-//population_states = table des personnes
-
-/*liste chainee pour connaitre les successor mais pour connaitre leur info
-se refferer a une liste a part. les liste de successor permettent uniquement
-de se refferer dans la liste a part.
-
-letat est modofie seulement dans population_states et on y accede dans le parcours des
-successeurs par lindexe de la presonne concernee*/
-
-//------------------------------------------------------------------------
 
 /*INFO:
 le nombre daretes dun graphe grille de n^2 personnes est de (n-1).n.2*/
@@ -93,7 +78,7 @@ void print_graphe_states(Graphe* G){
 
 	while(index != G->nb_summit){
 		for (int j = 0; j < nb_ligne ; j++){
-			printf("%d", G->population_states[index]);
+			printf("%d ", G->population_states[index]);
 			index++;
 		}
 		printf("\n");
@@ -114,13 +99,21 @@ void print_graphe_arcs(Graphe* G){
 	}
 }
 
-void evolve_calculation(Graphe* G, int alpha, int beta, int gamma){
+void evolve_calculation(Graphe* G, double alpha, double beta, double gamma){
 	
 	double likelihood, global_alpha;
 	Cell* current_successor;
 
+	/*PROBLEME: les calculs sont dynamiques pour un meme temps t
+	ie les evolutions calucle pour t+1 sont prise en compte dans les
+	calculs des sommets au temps t
+	SOLUTION: enregister les etats de t+1 calcul dans une structure a 
+	part pour ne pas modifier G->successors en court de calcul*/
+
+	State population_next_states[G->nb_summit];
+
 	for(int i = 0; i < G->nb_summit; i++){
-		//on lance les des
+		//on lance les des:
 		likelihood = rand()%100;
 
 		if 		(G->population_states[i] == Sain){
@@ -132,15 +125,21 @@ void evolve_calculation(Graphe* G, int alpha, int beta, int gamma){
 				current_successor = current_successor->next;
 			}
 			if(likelihood <= global_alpha*100)
-				G->population_states[i] = Malade;
+				population_next_states[i] = Malade;
+			else population_next_states[i] = Sain;
 
 		}else if(G->population_states[i] == Malade){
-			if(likelihood <= beta)
-				G->population_states[i] = Mort;
+			if(likelihood <= beta*100)
+				population_next_states[i] = Mort;
 			else if(likelihood >= (1-gamma)*100)
-				G->population_states[i] = Immunise;
-		}
+				population_next_states[i] = Immunise;
+			else population_next_states[i] = Malade;
+		}else population_next_states[i] = G->population_states[i];
 	}
+
+	//actualisation des etats de la population suivant les calculs devolution:
+	for(int i = 0; i < G->nb_summit; i++)
+		G->population_states[i] = population_next_states[i];
 }
 
 
@@ -148,9 +147,8 @@ void evolve_calculation(Graphe* G, int alpha, int beta, int gamma){
 
 int main(){
 
-
-	int timestep = 100;
-	double alpha = 0.4, beta = 0.3, gamma = 0.7;
+	int timestep = 90;
+	double alpha = 0.3, beta = 0.2, gamma = 0.1;
 	const char* grapheFileName = "test.txt";
 	Graphe G;
 	srand(time(NULL));
@@ -172,9 +170,8 @@ int main(){
 		if(timestep % 10 == 0){
 			print_graphe_states(&G);
 			printf("\n");
+			evolve_calculation(&G, alpha, beta, gamma);
 		}
-
-		evolve_calculation(&G, alpha, beta, gamma);
 	}
 
 
