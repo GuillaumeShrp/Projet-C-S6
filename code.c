@@ -73,12 +73,16 @@ void graphe_creation(Graphe* G, const char* grapheFileName){
 
 void print_graphe_states(Graphe* G){
 /*fonction daffichage valable uniquement pour un graphe grille*/
-
 	int index = 0, nb_ligne = (int)pow(G->nb_summit, 0.5);
 
 	while(index != G->nb_summit){
 		for (int j = 0; j < nb_ligne ; j++){
-			printf("%d ", G->population_states[index]);
+
+			//les personnes mortes ne sont pas afficher:
+			if(G->population_states[index] == 3)
+				printf(" ");
+
+			else printf("%d", G->population_states[index]);
 			index++;
 		}
 		printf("\n");
@@ -124,16 +128,20 @@ void evolve_calculation(Graphe* G, double alpha, double beta, double gamma){
 					global_alpha = global_alpha + alpha;
 				current_successor = current_successor->next;
 			}
-			if(likelihood <= global_alpha*100)
+			if(likelihood < global_alpha*100)
+				/*Attention: inegalité stricte sinon likelihood peut etre nulle 
+				et alors un malade apparait de lui meme et non a cause de ses voisins*/
 				population_next_states[i] = Malade;
 			else population_next_states[i] = Sain;
 
 		}else if(G->population_states[i] == Malade){
-			if(likelihood <= beta*100)
+			//meme attention pour linegalite stricte (du cote de 0 uniquement):
+			if(likelihood < beta*100)
 				population_next_states[i] = Mort;
-			else if(likelihood >= (1-gamma)*100)
+			else if(likelihood > (1-gamma)*100)
 				population_next_states[i] = Immunise;
 			else population_next_states[i] = Malade;
+
 		}else population_next_states[i] = G->population_states[i];
 	}
 
@@ -142,14 +150,36 @@ void evolve_calculation(Graphe* G, double alpha, double beta, double gamma){
 		G->population_states[i] = population_next_states[i];
 }
 
+void creation_txt_gird(int n,const char* createdGrapheFileName){
+//n = taille de grille
+
+    FILE *fp;
+
+    fp = fopen(createdGrapheFileName,"w");
+    //nombre darete = n*(n-1)*2
+    fprintf(fp,"%d\n%d\n%d\n%d\n", n*n, 1, n*(n-1)*2, n*n/2-1-n/2);
+	/*creation dun graphe grille avec un malade au milieu
+	soit a lindex n*n/2-1-n/2 */
+
+    //creation des arretes lignes:
+    for (int i = 0; i < n; i++)
+    	for (int j = 0; j < n-1; j++)
+    		fprintf(fp, "%d %d\n", i*n +j, i*n +j+1);
+    //creation des arretes colones:
+    for (int i = 0; i < n-1; i++)
+    	for (int j = 0; j < n; j++)
+    		fprintf(fp, "%d %d\n", i*n +j, i*n +j+n);
+
+    fclose(fp);
+}
 
 //------------------------------------------------------------------------
 
 int main(){
 
-	int timestep = 90;
-	double alpha = 0.3, beta = 0.2, gamma = 0.1;
-	const char* grapheFileName = "test.txt";
+	int timestep = 20;
+	double alpha = 0.2, beta = 0.1, gamma = 0.05;
+	const char* grapheFileName = "testy.txt";
 	Graphe G;
 	srand(time(NULL));
 
@@ -161,17 +191,20 @@ int main(){
 		@ malade : proba de devenir imuniser gamma ou mort beta
 	*/
 
-	graphe_creation(&G, grapheFileName);
+	//premiers tests:
+	//graphe_creation(&G, "test.txt");
 	//print_graphe_arcs(&G);
+	
+	creation_txt_gird(20,grapheFileName);
+	graphe_creation(&G, grapheFileName);
 
 	while(timestep--){
-
-		//affichage tous les 10 unites de temps:
+		//affichage partiel de levolution:
 		if(timestep % 10 == 0){
 			print_graphe_states(&G);
 			printf("\n");
-			evolve_calculation(&G, alpha, beta, gamma);
 		}
+		evolve_calculation(&G, alpha, beta, gamma);
 	}
 
 
