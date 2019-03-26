@@ -19,3 +19,4 @@ void graphe_creation(Graphe* G, const char* grapheFileName);
 void print_graphe_states(Graphe* G);
 void print_graphe_arcs(Graphe* G);
 void evolve_calculation(Graphe* G, double alpha, double beta, double gamma);
+void creation_txt_gird(int n,const char* createdGrapheFileName);
