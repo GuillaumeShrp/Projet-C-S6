@@ -4,7 +4,6 @@
 #include <math.h>
 #include "code.h"
 
-
 //------------------------------------------------------------------------
 
 /*CONVENTION: graphe non oriente. les aretes sont encodees dans un seul sens
@@ -71,8 +70,19 @@ void graphe_creation(Graphe* G, const char* grapheFileName){
 	fclose(fp);
 }
 
+void my_delay(int i){
+//Pause l'application pour i miliseconds:
+    clock_t start,end;
+    start=clock();
+    while(((end=clock())-start)<=i*CLOCKS_PER_SEC/1000);
+}
+
 void print_graphe_states(Graphe* G){
 /*fonction daffichage valable uniquement pour un graphe grille*/
+
+	printf("\e[1;1H\e[2J");//clear console
+	my_delay(100);
+
 	int index = 0, nb_ligne = (int)pow(G->nb_summit, 0.5);
 
 	while(index != G->nb_summit){
@@ -177,8 +187,8 @@ void creation_txt_gird(int n,const char* createdGrapheFileName){
 
 int main(){
 
-	int timestep = 20;
-	double alpha = 0.2, beta = 0.1, gamma = 0.05;
+	int timestep = 100;
+	double alpha = 0.2, beta = 0.1, gamma = 0.1;
 	const char* grapheFileName = "testy.txt";
 	Graphe G;
 	srand(time(NULL));
@@ -195,12 +205,12 @@ int main(){
 	//graphe_creation(&G, "test.txt");
 	//print_graphe_arcs(&G);
 	
-	creation_txt_gird(20,grapheFileName);
+	creation_txt_gird(40,grapheFileName);
 	graphe_creation(&G, grapheFileName);
 
 	while(timestep--){
 		//affichage partiel de levolution:
-		if(timestep % 10 == 0){
+		if(timestep % 1 == 0){
 			print_graphe_states(&G);
 			printf("\n");
 		}
